@@ -1,0 +1,56 @@
+import sys
+from ortools.sat.python import cp_model
+def Input() :
+    f=sys.stdin
+    [n,m]=[int(x) for x in f.readline().split()]
+    edges=[]
+    In={i : [] for i in range(1,n+1)}
+    Out={i: [] for i in range(1,n+1)}
+    Cost={}
+    for i in range(m) :
+        [u,v,c]=[int(x) for x in f.readline().split()]
+        Cost[(u,v)]=c
+        edges.append(((u,v)))
+        In[v].append(u)
+        Out[u].append(v) 
+    return n,m,edges,Cost,In,Out
+n,m,edges,Cost,In,Out=Input()
+model=cp_model.CpModel()
+path1={}
+path2={}
+# set up variable : path(i,j)= 1 if path1 includes (i,j) edge , 0 otherwise
+for (i,j) in edges :
+    path1[(i,j)]=model.NewIntVar(0,1,'path1('+str(i)+','+str(j)+')')
+    path2[(i,j)]=model.NewIntVar(0,1,'path2('+str(i)+','+str(j)+')')
+# Constraint : 2 disjoint path (no common edge ) 
+for (i,j) in edges :
+    model.Add(path1[(i,j)]+path2[(i,j)] <= 1)
+# Constraint : Flow Balance 
+for j in range(2,n) :
+    model.Add(sum(path1[(i,j)] for i in In[j])-sum(path1[(j,k)] for k in Out[j])==0)
+    model.Add(sum(path2[(i,j)] for i in In[j])-sum(path2[(j,k)] for k in Out[j])==0)
+#flow balance at 1
+model.Add(sum(-path1[(i,1)] for i in In[1])+sum(path1[(1,k)] for k in Out[1])==1)
+model.Add(sum(-path2[(i,1)] for i in In[1])+sum(path2[(1,k)] for k in Out[1])==1)
+#flow balance at n 
+model.Add(sum(path1[(i,n)] for i in In[n])-sum(path1[(n,k)] for k in Out[n])==1)
+model.Add(sum(path2[(i,n)] for i in In[n])-sum(path2[(n,k)] for k in Out[n])==1)
+# Objecive 
+length1=sum(path1[(i,j)]*Cost[(i,j)] for (i,j) in edges)
+length2=sum(path2[(i,j)]*Cost[(i,j)] for (i,j) in edges)
+total=length1+length2
+model.Minimize(total)
+solver=cp_model.CpSolver()
+status=solver.Solve(model)
+if status==cp_model.OPTIMAL :
+    print(solver.value(total))
+else :
+    print("NOT_FEASIBLE")
+
+
+
+
+
+
+
+
