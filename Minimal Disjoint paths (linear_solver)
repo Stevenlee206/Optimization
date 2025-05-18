@@ -1,0 +1,50 @@
+import sys
+from ortools.linear_solver import pywraplp
+def Input() :
+    f=sys.stdin
+    [n,m]=[int(x) for x in f.readline().split()]
+    edges=[]
+    In={i : [] for i in range(1,n+1)}
+    Out={i: [] for i in range(1,n+1)}
+    Cost={}
+    for i in range(m) :
+        [u,v,c]=[int(x) for x in f.readline().split()]
+        Cost[(u,v)]=c
+        edges.append(((u,v)))
+        In[v].append(u)
+        Out[u].append(v) 
+    return n,m,edges,Cost,In,Out
+n,m,edges,Cost,In,Out=Input()
+solver = pywraplp.Solver(
+    'TwoDisjointPaths', 
+    pywraplp.Solver.SCIP_MIXED_INTEGER_PROGRAMMING
+)
+path1={}
+path2={}
+for (i,j) in edges :
+    path1[(i,j)] = solver.NumVar(0,1,f'p1_{i}_{j}')
+    path2[(i,j)] = solver.NumVar(0,1,f'p2_{i}_{j}')
+    #Disjoint Constraint :
+for (i,j) in edges :
+    solver.Add(path1[(i,j)]+path2[(i,j)] <= 1)
+    #Flow Balance Constraint :
+for j in range(2,n) :
+    solver.Add(solver.Sum(path1[(i,j)] for i in In[j])-solver.Sum(path1[(j,k)] for k in Out[j])==0)
+for j in range(2,n) :
+    solver.Add(solver.Sum(path2[(i,j)] for i in In[j])-solver.Sum(path2[(j,k)] for k in Out[j])==0)
+    #start point constraint (special case of flow balance constraint) :
+solver.Add(solver.Sum(path1[(1,k)] for k in Out[1])-solver.Sum(path1[(i,1)] for i in In[1]) == 1 )
+solver.Add(solver.Sum(path2[(1,k)] for k in Out[1])-solver.Sum(path2[(i,1)] for i in In[1]) == 1 )
+    #end point constraint :
+solver.Add(-solver.Sum(path1[(n,k)] for k in Out[n])+solver.Sum(path1[(i,n)] for i in In[n]) == 1)
+solver.Add(-solver.Sum(path2[(n,k)] for k in Out[n])+solver.Sum(path2[(i,n)] for i in In[n]) == 1)
+    # length of 2 disjoint (does not contain same edges) path :
+length1=solver.Sum(path1[(i,j)]*Cost[(i,j)] for (i,j) in edges)
+length2=solver.Sum(path2[(i,j)]*Cost[(i,j)] for (i,j) in edges)
+total=length1+length2
+solver.Minimize(total)
+status=solver.Solve()
+if status==pywraplp.Solver.OPTIMAL :
+    print(int(solver.Objective().Value()))
+else :
+    print("NOT_FEASIBLE")
