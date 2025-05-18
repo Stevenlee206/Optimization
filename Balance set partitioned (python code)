@@ -1,0 +1,24 @@
+#PYTHON 
+def main():
+    n, m = map(int, input().split())
+    w = list(map(int, input().split()))
+
+    items = [(w[i], i) for i in range(n)]
+    items.sort(key=lambda x: x[0], reverse=True)
+
+    set_weight = {}               
+    sol = [0] * n                 
+
+    for set_id, (weight, orig_idx) in enumerate(items[:m], start=1):
+        set_weight[set_id] = weight
+        sol[orig_idx] = set_id
+    for weight, orig_idx in items[m:]:
+        min_set = min(set_weight, key=set_weight.get)
+        sol[orig_idx] = min_set
+        set_weight[min_set] += weight
+    print(n)
+    print(*sol)
+
+
+if __name__ == "__main__":
+    main()
