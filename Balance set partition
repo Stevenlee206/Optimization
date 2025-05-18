@@ -1,0 +1,69 @@
+//C 
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define Max_N 10001
+#define Max_M 1001
+
+typedef struct {
+    int weight;
+    int idx;
+} Item;
+
+int n, m;
+Item items[Max_N];
+int SetWeight[Max_M];
+int Sol[Max_N];
+int cmp_desc(const void *a, const void *b) {
+    Item *ia = (Item*)a;
+    Item *ib = (Item*)b;
+    return ib->weight - ia->weight;
+}
+void Update(int *MinIndex, int *MaxIndex) {
+    int mn = INT_MAX, mx = INT_MIN;
+    for (int i = 1; i <= m; i++) {
+        if (SetWeight[i] < mn) {
+            mn = SetWeight[i];
+            *MinIndex = i;
+        }
+        if (SetWeight[i] > mx) {
+            mx = SetWeight[i];
+            *MaxIndex = i;
+        }
+    }
+}
+
+int main() {
+    scanf("%d %d", &n, &m);
+    for (int i = 1; i <= n; i++) {
+        scanf("%d", &items[i].weight);
+        items[i].idx = i;
+    }
+    qsort(items + 1, n, sizeof(Item), cmp_desc);
+
+    for (int i = 1; i <= m; i++) {
+        int w = items[i].weight;
+        int orig_idx = items[i].idx;
+        Sol[orig_idx] = i;       
+        SetWeight[i] = w;        
+    }
+
+    int MinIndex = 1, MaxIndex = 1;
+    Update(&MinIndex, &MaxIndex);
+
+    for (int k = m + 1; k <= n; k++) {
+        int w = items[k].weight;
+        int orig_idx = items[k].idx;
+        Sol[orig_idx] = MinIndex;
+        SetWeight[MinIndex] += w;
+        Update(&MinIndex, &MaxIndex);
+    }
+    printf("%d\n", n);
+    for (int i = 1; i <= n; i++) {
+        printf("%d ", Sol[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
