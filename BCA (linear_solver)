@@ -1,0 +1,44 @@
+from ortools.linear_solver import pywraplp
+import sys
+def Input():
+    f=sys.stdin
+    [m,n]=[int(x) for x in f.readline().split()]
+    Pref={i:[] for i in range(1,m+1)}
+    for i in range(1,m+1):
+        r=[int(x) for x in f.readline().split()]
+        for courses in r[1:] :
+            Pref[i].append(courses)
+    [k]=[int(x) for x in f.readline().split()]
+    Conflicts=[]
+    for i in range(1,k+1) :
+        r=[int(x) for x in f.readline().split()]
+        Conflicts.append(r)
+    return m,n,Pref,k,Conflicts
+m,n,Pref,k,Conflicts=Input()
+solver = pywraplp.Solver('BCA', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+x={}
+# Decision Variable :
+for i in range(1,m+1):
+    for j in range(1,n+1):
+        x[(i,j)]=solver.IntVar(0,1,'x('+str(i)+','+str(j)+')')
+# Constrain : 1 class can only assigned to 1 teacher
+for j in range(1,n+1):   
+    solver.Add(solver.Sum(x[(i,j)] for i in range(1,m+1)) == 1)
+# Constrain : 2 class have conflict can not assigned to same teacher
+for [i,j] in Conflicts:
+    for teacher in range(1,m+1) :
+        solver.Add(x[(teacher,i)]+x[(teacher,j)]<=1)
+# Constraint : if course i not in Pref list of teacher i , he can not teach it
+for teacher in range(1,m+1) :
+    for course in range(1,n+1) :
+        if course not in Pref[teacher] :
+            solver.Add(x[(teacher,course)]==0)
+load=solver.IntVar(0,n,'load')
+for teacher in range(1,m+1) :
+    solver.Add(solver.Sum(x[teacher,j] for j in Pref[teacher]) <= load)
+solver.Minimize(load)
+status=solver.Solve()
+if status==pywraplp.Solver.OPTIMAL :
+    print(int(solver.Objective().Value()))
+else :
+    print(-1)
