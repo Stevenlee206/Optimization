@@ -1,0 +1,66 @@
+import sys
+from ortools.sat.python import cp_model
+def Input() :
+    f=sys.stdin
+    [n,m,s,L]=[int(x) for x in f.readline().split()]
+    edges=[]
+    In={i:[] for i in range(1,n+1)}
+    Out={i:[] for i in range(1,n+1)}
+    Cost={}
+    Time={}
+    for edge in range(1,m+1) :
+        [u,v,t,c]=[int(x) for x in f.readline().split()]
+        if u!=s :
+            edges.append((u,v))
+            edges.append((v,u))
+            Cost[(u,v)]=c
+            Cost[(v,u)]=c
+            Time[(u,v)]=t
+            Time[(v,u)]=t
+            In[u].append(v)
+            Out[u].append(v)
+            In[v].append(u)
+            Out[v].append(u)
+        else :
+            edges.append((u,v))
+            Cost[(u,v)]=c
+            Time[(u,v)]=t
+            Out[u].append(v)
+            In[v].append(u)
+    return n,m,s,L,edges,Cost,Time,In,Out
+n,m,s,L,edges,Cost,Time,In,Out=Input()
+model=cp_model.CpModel()
+#decision Variable :
+decs={}
+for (u,v) in edges :
+    decs[(u,v)]=model.NewIntVar(0,1,'decs('+str(u)+','+str(v)+')')
+# Auxiliary variable : Time when we visit vertex i
+InTime={}
+for vertex in range(1,n+1) :
+    InTime[vertex]=model.NewIntVar(0,L,'InTime('+str(vertex)+')')
+#Constrain : each Vertex must receive a package from another vertex , except the source
+for i in range(1,n+1):
+    if i==s:
+        model.Add(sum(decs[(j,s)] for j in In[s])==0)
+    else :
+        model.Add(sum(decs[(j,i)] for j in In[i])==1)
+#Constrain : Transmission time from s to each Node must <= L
+model.Add(InTime[s]==0)
+for (u,v) in edges :
+    b=model.NewBoolVar('b')
+    model.add(decs[(u,v)]==1).OnlyEnforceIf(b)
+    model.add(decs[(u,v)] != 1).OnlyEnforceIf(b.Not())
+    model.add(InTime[v]==InTime[u]+Time[(u,v)]).OnlyEnforceIf(b)
+#Objective :
+TotalD=model.NewIntVar(0,300000,'TotalD')
+model.Add(TotalD==sum(decs[(i,j)]*Cost[(i,j)] for (i,j) in edges))
+model.Minimize(TotalD)
+solver=cp_model.CpSolver()
+status=solver.solve(model)
+if status==cp_model.OPTIMAL :
+    print(solver.value(TotalD))
+else :
+    print('No Optimal')
+
+
+
