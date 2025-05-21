@@ -1,0 +1,43 @@
+import sys
+def Input() :
+    f=sys.stdin
+    Board=[]
+    for i in range(9):
+        row=[int(x) for x in f.readline().split()]
+        Board.append(row)
+    return Board
+def IsValid(Board,pos,num) :
+    (row,col)=pos
+    if num in Board[row] :
+        return False
+    for i in range(9):
+        if Board[i][col]==num :
+            return False
+    Box_row=row//3*3
+    Box_col=col//3*3
+    for i in range(Box_row,Box_row+3) :
+        for j in range(Box_col,Box_col+3) :
+            if Board[i][j]==num :
+                return False
+    return True
+def FindEmpty(Board) :
+    for i in range(9) :
+        for j in range(9) :
+            if Board[i][j]==0 :
+                return (i,j)
+    return True
+def SolveSudoku(Board):
+    pos=FindEmpty(Board)
+    Count=0
+    if pos==True :
+        return 1
+    else :
+        for i in range(1,10) :
+            (row,col)=pos
+            if IsValid(Board,pos,i)==True :
+                Board[row][col]=i
+                Count +=SolveSudoku(Board)
+                Board[row][col]=0
+    return Count
+Board=Input()
+print(SolveSudoku(Board))
