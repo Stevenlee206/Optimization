@@ -1,0 +1,116 @@
+import sys
+from ortools.sat.python import cp_model
+def Input() :
+    [N,M,K]=[int(x) for x in sys.stdin.readline().split()]
+    [a,b,c,d,e,f]=[int(x) for x in sys.stdin.readline().split()]
+    s=[]
+    for i in range(N):
+        s.append([int(x) for x in sys.stdin.readline().split()])
+    g=[]
+    for i in range(N):
+        g.append([int(x) for x in sys.stdin.readline().split()])
+    t=[int(x) for x in sys.stdin.readline().split()]
+    return N,M,K,a,b,c,d,e,f,s,g,t
+N,M,K,a,b,c,d,e,f,s,g,t=Input()
+model=cp_model.CpModel()
+
+x={}
+for i in range(1,N+1) :
+    for k in range(1,K+1) :
+        x[(i,k)]=model.NewIntVar(0,1,f'x_{i}_{k}')
+
+y={}
+for j in range(1,M+1):
+    for k in range(1,K+1) :
+        y[(j,k)]=model.NewIntVar(0,1,f'x_{j}_{k}')
+
+# Mỗi đồ án i chỉ vào đúng một HĐ
+for i in range(1, N+1):
+    model.Add(sum(x[(i,k)] for k in range(1, K+1)) == 1)
+
+# Mỗi giáo viên j chỉ vào đúng một HĐ
+for j in range(1, M+1):
+    model.Add(sum(y[(j,k)] for k in range(1, K+1)) == 1)
+
+for k in range(1,K+1) :
+    model.Add(a<=sum(x[(i,k)] for i in range(1,N+1)))
+    model.Add(sum(x[(i,k)] for i in range(1,N+1))<=b)
+    model.Add(c<=sum(y[(j,k)] for j in range(1,M+1)))
+    model.Add(sum(y[(j,k)] for j in range(1,M+1))<=d)
+
+
+for k in range(1,K+1) :
+    for i in range(1,N+1) :
+        for j in range(1,M+1) :
+            model.Add(t[i-1] != j).OnlyEnforceIf([x[(i,k)],y[(j,k)]])
+for k in range(1,K+1):
+    for i in range(1,N+1) :
+        for j in range (i+1,N+1) :
+            model.Add(s[i-1][j-1]>=e).OnlyEnforceIf([x[(i,k)],x[(j,k)]])
+
+for k in range(1,K+1) :
+    for i in range(1,N+1) :
+        for j in range(1,M+1) :
+            model.Add(g[i-1][j-1]>=f).OnlyEnforceIf([x[(i,k)],y[(j,k)]])
+
+z1={}
+z2={}
+for k in range(1,K+1) :
+    z1[k]=model.NewIntVar(0,9999991,'z1('+str(k)+')')
+    z2[k]=model.NewIntVar(0,9999991,'z2('+str(k)+')')
+z={}
+for k in range(1,K+1) :
+    z[k]=model.NewIntVar(0,9999991,'z('+str(k)+')')
+for k in range(1,K+1) :
+    # trong vòng for k:
+# --- z1 ---
+    z1_terms = []
+    for i in range(1, N+1):
+        for j in range(i+1, N+1):
+            and_var = model.NewBoolVar(f"and_x_{i}_{j}_{k}")
+            model.AddMultiplicationEquality(and_var, [ x[(i,k)], x[(j,k)] ])
+            if s[i-1][j-1] != 0:
+                term = model.NewIntVar(0, s[i-1][j-1], f"term_{i}_{j}_{k}")
+                model.Add(term == and_var * s[i-1][j-1])
+                z1_terms.append(term)
+    model.Add(z1[k] == sum(z1_terms))
+
+# --- z2 ---
+    z2_terms = []
+    for i in range(1, N+1):
+        for j in range(1, M+1):
+            and_var = model.NewBoolVar(f"and_xy_{i}_{j}_{k}")
+            model.AddMultiplicationEquality(and_var, [ x[(i,k)], y[(j,k)] ])
+            if g[i-1][j-1] != 0:
+               term2 = model.NewIntVar(0, g[i-1][j-1], f"term2_{i}_{j}_{k}")
+               model.Add(term2 == and_var * g[i-1][j-1])
+               z2_terms.append(term2)
+    model.Add(z2[k] == sum(z2_terms))
+
+    model.Add(z[k]==z1[k]+z2[k])
+
+Common=model.NewIntVar(0,999999,'Common')
+model.AddMinEquality(Common, [ z[k] for k in range(1, K+1) ])
+model.Maximize(Common)
+solver=cp_model.CpSolver()
+status=solver.Solve(model)
+if status==cp_model.OPTIMAL :
+    print(N)
+    Ans=[]
+    Ans1=[]
+    for i in range(1,N+1) :
+        for k in range(1,K+1) :
+            if solver.Value(x[(i,k)])==1 :
+                Ans.append(k)
+    for i in Ans :
+        print(i,end=" ")
+    print()
+    print(M)
+    for j in range(1,M+1) :
+        for k in range(1,K+1) :
+            if solver.Value(y[(j,k)])==1 :
+                Ans1.append(k)
+    for i in Ans1 :
+        print(i,end=" ")
+else :
+    print(0)
