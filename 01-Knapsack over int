@@ -1,0 +1,42 @@
+//C 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define Max_N 1001
+#define Max_B 10001
+
+int n, B;
+int w[Max_N], v[Max_N];
+int memo[Max_N][Max_B];
+
+void Input() {
+    scanf("%d %d", &n, &B);
+    for (int i = 0; i < n; i++)
+        scanf("%d %d", &w[i], &v[i]);
+}
+
+int KnapSack(int i, int b) {
+    if (i < 0) return 0;
+    if (memo[i][b] != 0) 
+        return memo[i][b];
+
+    int res;
+    if (w[i] > b) {
+        res = KnapSack(i-1, b);
+    } else {
+        res = fmax(KnapSack(i-1, b),v[i] + KnapSack(i-1, b - w[i]));
+    }
+    memo[i][b] = res;
+    return res;
+}
+
+int main() {
+    Input();
+    for (int i = 0; i <= n; i++)
+      for (int b = 0; b <= B; b++)
+        memo[i][b] = 0;
+    int ans = KnapSack(n-1, B);
+    printf("%d\n", ans);
+    return 0;
+}
