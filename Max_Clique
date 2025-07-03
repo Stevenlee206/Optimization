@@ -1,0 +1,36 @@
+#PYTHON 
+#PYTHON 
+import sys
+from ortools.sat.python import cp_model 
+
+def Input():
+    f = sys.stdin
+    numVer, numEdge = map(int, f.readline().split())
+    Edges = set()
+    for _ in range(numEdge):
+        u, v = map(int, f.readline().split())
+        Edges.add((u, v))
+        Edges.add((v, u))  
+    return numVer, Edges
+
+numVer, Edges = Input()
+model = cp_model.CpModel()
+
+decs = {i: model.NewBoolVar(f"decs({i})") for i in range(1, numVer + 1)}
+
+for i in range(1, numVer + 1):
+    for j in range(i + 1, numVer + 1):
+        if (i, j) not in Edges:
+            model.Add(decs[i] + decs[j] <= 1)
+
+model.Maximize(sum(decs[i] for i in range(1, numVer + 1)))
+
+solver = cp_model.CpSolver()
+status = solver.Solve(model)
+
+if status == cp_model.OPTIMAL:
+    clique_nodes = [str(i) for i in range(1, numVer + 1) if solver.Value(decs[i])]
+    print(len(clique_nodes))
+    print(' '.join(clique_nodes))
+else:
+    print("No Optimal")
