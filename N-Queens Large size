@@ -1,0 +1,24 @@
+#PYTHON 
+def solve_n_queens(n):
+    evens = [i for i in range(2, n + 1, 2)]
+    odds = [i for i in range(1, n + 1, 2)]
+
+    if n % 6 == 2:
+        if len(odds) >= 3:  
+            odds[0], odds[1] = odds[1], odds[0]  
+        if 5 in odds:
+            odds.remove(5)
+            odds.append(5)
+    elif n % 6 == 3:
+        if len(evens) >= 1:
+            evens.append(evens.pop(0))  
+        if len(odds) >= 2:
+            odds.append(odds.pop(0))  
+            odds.append(odds.pop(0))  
+
+    result = evens + odds
+    return result
+n = int(input())
+solution = solve_n_queens(n)
+print(n)
+print(' '.join(map(str, solution)))
