@@ -1,0 +1,127 @@
+//C 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <limits.h>
+#include <stdbool.h>
+
+#define MAX_N      1001
+#define MAX_ITER   10000    
+
+int n;
+int Dist[MAX_N][MAX_N];
+int tour[MAX_N], bestTour[MAX_N], prevTour[MAX_N];
+int currentCost, bestCost, prevCost;
+
+int tourCost(int *t) {
+    int c = 0;
+    for (int i = 1; i < n; i++)
+        c += Dist[t[i]][t[i+1]];
+    c += Dist[t[n]][t[1]];
+    return c;
+}
+
+void GreedyInit() {
+    bool visited[MAX_N] = {false};
+    int cur = 1;
+    tour[1] = cur;
+    visited[cur] = true;
+    for (int step = 2; step <= n; step++) {
+        int best = -1, bestD = INT_MAX;
+        for (int v = 1; v <= n; v++) {
+            if (!visited[v] && Dist[cur][v] < bestD) {
+                bestD = Dist[cur][v];
+                best = v;
+            }
+        }
+        tour[step] = best;
+        visited[best] = true;
+        cur = best;
+    }
+}
+
+int destroyRandom(int *removedPos, int *partialList, int *removedList) {
+    int k = rand() % (n/10 + 1) + 1;
+    memset(removedPos, 0, sizeof(int)*(n+1));
+    for (int i = 0; i < k; i++) {
+        int pos;
+        do { pos = rand() % n + 1; } while (removedPos[pos]);
+        removedPos[pos] = 1;
+    }
+    int p = 0, r = 0;
+    for (int i = 1; i <= n; i++) {
+        if (removedPos[i])
+            removedList[++r] = tour[i];
+        else
+            partialList[++p] = tour[i];
+    }
+    return r;
+}
+
+void repairGreedy(int *partialList, int pLen, int *removedList, int rLen) {
+    int len = pLen;
+    for (int idx = 1; idx <= rLen; idx++) {
+        int v = removedList[idx];
+        int bestPos = 1, bestInc = INT_MAX;
+        for (int pos = 1; pos <= len; pos++) {
+            int u = partialList[pos];
+            int w = (pos < len ? partialList[pos+1] : partialList[1]);
+            int inc = Dist[u][v] + Dist[v][w] - Dist[u][w];
+            if (inc < bestInc) {
+                bestInc = inc;
+                bestPos = pos;
+            }
+        }
+        for (int j = len+1; j > bestPos+1; j--)
+            partialList[j] = partialList[j-1];
+        partialList[bestPos+1] = v;
+        len++;
+    }
+    for (int i = 1; i <= n; i++)
+        tour[i] = partialList[i];
+}
+
+void ALNS() {
+    GreedyInit();
+    currentCost = bestCost = tourCost(tour);
+    memcpy(bestTour, tour, sizeof(int)*(n+1));
+
+    int removedPos[MAX_N], partialList[MAX_N], removedList[MAX_N];
+
+    for (int iter = 1; iter <= MAX_ITER; iter++) {
+        memcpy(prevTour, tour, sizeof(int)*(n+1));
+        prevCost = currentCost;
+        int rLen = destroyRandom(removedPos, partialList, removedList);
+        int pLen = n - rLen;
+        repairGreedy(partialList, pLen, removedList, rLen);
+
+        int newCost = tourCost(tour);
+        double p_accept = 0.01; 
+        if (newCost < prevCost || (rand()/(double)RAND_MAX) < p_accept) {
+            currentCost = newCost;
+        } else {
+            memcpy(tour, prevTour, sizeof(int)*(n+1));
+            currentCost = prevCost;
+        }
+        if (currentCost < bestCost) {
+            bestCost = currentCost;
+            memcpy(bestTour, tour, sizeof(int)*(n+1));
+        }
+    }
+}
+
+int main() {
+    srand((unsigned)time(NULL));
+    scanf("%d", &n);
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= n; j++)
+            scanf("%d", &Dist[i][j]);
+
+    ALNS();
+    printf("%d\n", n);
+    for (int i = 1; i <= n; i++)
+        printf("%d ", bestTour[i]);
+    printf("\n");
+    return 0;
+}
