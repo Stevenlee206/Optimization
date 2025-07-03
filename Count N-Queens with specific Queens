@@ -1,0 +1,56 @@
+#PYTHON 
+import sys
+def Input() :
+    f=sys.stdin 
+    [N]=[int(x) for x in f.readline().split()]
+    Board=[]
+    for i in range(N) :
+        row=[int(x) for x in f.readline().split()]
+        Board.append(row)
+    return N,Board
+
+def BackTrack(N,Board,Cols,First_Diag,Anti_Diag,k,Availabel_row) :
+    if k==len(Availabel_row) :
+        return 1
+    else :
+        Count=0
+        row=Availabel_row[k]
+        for j in range(N) :
+            if not Cols[j] and not First_Diag[row+j] and not Anti_Diag[row-j+N-1] :
+                Cols[j]=True
+                First_Diag[row+j]=True
+                Anti_Diag[row-j+N-1]=True
+                Count +=BackTrack(N,Board,Cols,First_Diag,Anti_Diag,k+1,Availabel_row)
+                Cols[j]=False
+                First_Diag[row+j]=False
+                Anti_Diag[row-j+N-1]=False
+    return Count
+
+def Solve(N,Board) :
+    Rows=[False]*(N)
+    Cols=[False]*(N)
+    First_Diag=[False]*(2*N-1)
+    Anti_Diag=[False]*(2*N-1)
+    Fixed_row=[]
+    Availabel_rows=[]
+    for i in range(N) :
+        queen_in_row=False
+        for j in range(N) :
+            if Board[i][j]==1 :
+                if Rows[i]==True or Cols[j]==True or First_Diag[i+j]==True or Anti_Diag[i-j+N-1]==True :
+                    return 0
+                queen_in_row=True
+                Cols[j]=True
+                First_Diag[i+j]=True
+                Anti_Diag[i-j+N-1]=True
+        if queen_in_row==True :
+            Fixed_row.append(i)
+
+    Availabel_rows=[i for i in range(N) if i not in Fixed_row]
+    return BackTrack(N,Board,Cols,First_Diag,Anti_Diag,0,Availabel_rows)
+N,Board=Input()
+print(Solve(N,Board))
+
+
+      
+    
