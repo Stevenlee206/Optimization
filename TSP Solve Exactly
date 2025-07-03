@@ -1,0 +1,99 @@
+#PYTHON 
+import sys
+from ortools.linear_solver import pywraplp
+
+def solve_tsp_with_dynamic_sec(n, distance_matrix):
+    solver = pywraplp.Solver.CreateSolver('SCIP')
+    if not solver:
+        return None
+    x = {}
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                x[i, j] = solver.IntVar(0, 1, f'x_{i}_{j}')
+    objective = solver.Objective()
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                objective.SetCoefficient(x[i, j], distance_matrix[i][j])
+    objective.SetMinimization()
+    for j in range(n):
+        constraint = solver.Constraint(1, 1)
+        for i in range(n):
+            if i != j:
+                constraint.SetCoefficient(x[i, j], 1)
+    for i in range(n):
+        constraint = solver.Constraint(1, 1)
+        for j in range(n):
+            if i != j:
+                constraint.SetCoefficient(x[i, j], 1)
+    def find_subtours():
+        visited = [False] * n
+        subtours = []
+        for i in range(n):
+            if not visited[i]:
+                subtour = []
+                current = i
+                while True:
+                    if visited[current]:
+                        break
+                    visited[current] = True
+                    subtour.append(current)
+                    for j in range(n):
+                        if current != j and x[current, j].solution_value() > 0.5:
+                            current = j
+                            break
+                if len(subtour) > 1:
+                    subtours.append(subtour)
+        return subtours
+    while True:
+        status = solver.Solve()
+        if status != pywraplp.Solver.OPTIMAL:
+            return None
+
+        subtours = find_subtours()
+        if len(subtours) == 1 and len(subtours[0]) == n:
+            break  
+        for subtour in subtours:
+            if len(subtour) < n:
+                constraint = solver.Constraint(1, len(subtour) - 1)
+                for i in subtour:
+                    for j in subtour:
+                        if i != j:
+                            constraint.SetCoefficient(x[i, j], 1)
+    tour = [0]  
+    current_city = 0
+    visited = set([current_city])
+    while len(visited) < n:
+        for j in range(n):
+            if j != current_city and x[current_city, j].solution_value() > 0.5:
+                tour.append(j)
+                current_city = j
+                visited.add(current_city)
+                break
+    tour = [city + 1 for city in tour]
+    return tour
+
+def main():
+    n = int(sys.stdin.readline())
+    distance_matrix = []
+    for _ in range(n):
+        row = list(map(int, sys.stdin.readline().split()))
+        distance_matrix.append(row)
+    
+    if n == 1:
+        print(1)
+        print(1)
+        return
+    
+    tour = solve_tsp_with_dynamic_sec(n, distance_matrix)
+    
+    if tour:
+        print(n)
+        print(' '.join(map(str, tour)) + ' ')
+    else:
+        print("No solution found")
+
+if __name__ == '__main__':
+    main()
+ 
